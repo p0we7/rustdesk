@@ -78,9 +78,9 @@ class _InstallPageBodyState extends State<_InstallPageBody>
   _InstallPageBodyState() {
     controller = TextEditingController(text: bind.installInstallPath());
     final installOptions = jsonDecode(bind.installInstallOptions());
-    startmenu.value = installOptions['STARTMENUSHORTCUTS'] != '0';
-    desktopicon.value = installOptions['DESKTOPSHORTCUTS'] != '0';
-    printer.value = installOptions['PRINTER'] != '0';
+    startmenu.value = installOptions['STARTMENUSHORTCUTS'] == '1';
+    desktopicon.value = installOptions['DESKTOPSHORTCUTS'] == '1';
+    printer.value = installOptions['PRINTER'] == '1';
   }
 
   @override
