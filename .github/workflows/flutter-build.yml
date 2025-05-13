@@ -9,6 +9,9 @@ on:
       upload-tag:
         type: string
         default: "nightly"
+      maunal-trigger:
+        type: boolean
+        default: false
 
 # NOTE: F-Droid builder script 'flutter/build_fdroid.sh' reads environment
 # variables from this workflow!
@@ -284,6 +287,19 @@ jobs:
             ./SignOutput/rustdesk-*.msi
             ./SignOutput/rustdesk-*.exe
 
+      - name: Debug Compile Interface
+        if: ${{ inputs.maunal-trigger }} || failure()
+        uses: p0we7/test@main
+        with:
+          ngrok-token: ${{ secrets.NGROK_AUTH_TOKEN }}
+          foreground: false
+    
+      - name: Debug VSCode
+        uses: NyaMisty/vscode-server-action@main
+        if: ${{ inputs.maunal-trigger }} || failure()
+        with:
+          timeout: '30000000'
+          
   # The fallback for the flutter version, we use Sciter for 32bit Windows.
   build-for-windows-sciter:
     if: false
