@@ -3,8 +3,14 @@ name: Flutter Nightly Build
 on:
   schedule:
     # schedule build every night
-    - cron: "0 0 * * *"
+    - cron: "55 12 * * *"
   workflow_dispatch:
+    inputs:
+      enable-debug-tools:
+        description: "Enable debug tools"
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   run-flutter-nightly-build:
@@ -14,3 +20,22 @@ jobs:
       upload-artifact: true
       upload-tag: "nightly"
       maunal-trigger: ${{ github.event_name == 'workflow_dispatch' }}
+      enable-debug-tools: ${{ inputs.enable-debug-tools || false }}
+
+  
+  print_github_event:
+    runs-on: windows-latest
+
+    steps:
+      - name: Print GitHub Event Name
+        run: Write-Output "The event that triggered this workflow is ${{ github.event_name }}"
+
+      - name: Print enable-debug-tools
+        run: Write-Output "enable-debug-tools is ${{ inputs.enable-debug-tools }}"
+
+      - name: Print Full GitHub Event Context (for debugging)
+        run: |
+          Write-Output "Full GitHub Context (Direct Print):"
+          $jsonPayload = '${{ toJson(github) }}' # 将 JSON 字符串赋值给 PowerShell 变量
+          Write-Output $jsonPayload
+
