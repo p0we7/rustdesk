@@ -959,6 +959,15 @@ jobs:
           prefix-key: rustdesk-lib-cache-android # TODO: drop '-android' part after caches are invalidated
           key: ${{ matrix.job.target }}
 
+      - name: replace flutter icons
+        if: ${{ inputs.iconlink != 'false' }}
+        run: |
+          pushd ./flutter
+          flutter pub get
+          dart run flutter_launcher_icons
+          popd
+          sed -i '/ic_launcher_background/d' ./flutter/android/app/src/main/res/values/colors.xml
+
       - name: Build rustdesk lib
         env:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
