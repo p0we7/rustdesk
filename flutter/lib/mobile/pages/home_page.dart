@@ -53,8 +53,8 @@ class HomePageState extends State<HomePage> {
       ));
     }
     if (isAndroid && !bind.isOutgoingOnly()) {
-      _chatPageTabIndex = _pages.length;
-      _pages.addAll([ChatPage(type: ChatPageType.mobileMain), ServerPage()]);
+      // _chatPageTabIndex = _pages.length;  // 注释掉，因为不再有 ChatPage
+      _pages.add(ServerPage());  // 只添加 ServerPage
     }
     _pages.add(SettingsPage());
   }
