@@ -188,35 +188,71 @@ class ServerModel with ChangeNotifier {
       });
     }
 
-    // Initial keyboard status is off on mobile
-    if (isMobile) {
-      bind.mainSetOption(key: kOptionEnableKeyboard, value: 'N');
-    }
   }
 
   /// 1. check android permission
   /// 2. check config
   /// audio true by default (if permission on) (false default < Android 10)
   /// file true by default (if permission on)
+  /// keyboard true by default (if accessibility service on)
   checkAndroidPermission() async {
-    // audio
-    if (androidVersion < 30 ||
-        !await AndroidPermissionManager.check(kRecordAudio)) {
-      _audioOk = false;
-      bind.mainSetOption(key: kOptionEnableAudio, value: "N");
+    // keyboard / input control
+    final keyboardOption = await bind.mainGetOption(key: kOptionEnableKeyboard);
+    final wantKeyboard = keyboardOption != 'N';
+
+    if (wantKeyboard) {
+      // 用户希望启用输入控制，需要检查无障碍服务
+      // InputService.isOpen 状态会通过 changeStatue 更新到 _inputOk
+      // 如果当前 _inputOk 为 false，说明无障碍服务未开启，需要引导用户
+      if (!_inputOk && parent.target != null) {
+        // 引导用户去开启无障碍服务
+        showInputWarnAlert(parent.target!);
+      }
     } else {
-      final audioOption = await bind.mainGetOption(key: kOptionEnableAudio);
-      _audioOk = audioOption != 'N';
+      _inputOk = false;
+    }
+
+    // audio
+    final audioOption = await bind.mainGetOption(key: kOptionEnableAudio);
+    final wantAudio = audioOption != 'N';
+
+    if (androidVersion >= 30 && wantAudio) {
+      // 用户希望启用音频，检查权限
+      if (!await AndroidPermissionManager.check(kRecordAudio)) {
+        // 没有权限，主动请求
+        final granted = await AndroidPermissionManager.request(kRecordAudio);
+        _audioOk = granted;
+        if (!granted) {
+          bind.mainSetOption(key: kOptionEnableAudio, value: "N");
+        }
+      } else {
+        _audioOk = true;
+      }
+    } else {
+      _audioOk = androidVersion >= 30 && wantAudio;
+      if (!_audioOk) {
+        bind.mainSetOption(key: kOptionEnableAudio, value: "N");
+      }
     }
 
     // file
-    if (!await AndroidPermissionManager.check(kManageExternalStorage)) {
-      _fileOk = false;
-      bind.mainSetOption(key: kOptionEnableFileTransfer, value: "N");
+    final fileOption = await bind.mainGetOption(key: kOptionEnableFileTransfer);
+    final wantFile = fileOption != 'N';
+
+    if (wantFile) {
+      // 用户希望启用文件传输，检查权限
+      if (!await AndroidPermissionManager.check(kManageExternalStorage)) {
+        // 没有权限，主动请求
+        final granted = await AndroidPermissionManager.request(kManageExternalStorage);
+        _fileOk = granted;
+        if (!granted) {
+          bind.mainSetOption(key: kOptionEnableFileTransfer, value: "N");
+        }
+      } else {
+        _fileOk = true;
+      }
     } else {
-      final fileOption =
-          await bind.mainGetOption(key: kOptionEnableFileTransfer);
-      _fileOk = fileOption != 'N';
+      _fileOk = false;
     }
 
     // clipboard
