@@ -1531,6 +1531,27 @@ class InputModel {
     sendMouse('up', MouseButtons.wheel);
   }
 
+  Future<void> onMobileSettings() async {
+    // Open Android settings using Meta/Search key + I (equivalent to Win+I)
+    final metaKey = PhysicalKeyboardKey.metaLeft.usbHidUsage & 0xFFFF;
+    final keyI = PhysicalKeyboardKey.keyI.usbHidUsage & 0xFFFF;
+
+    // Press Meta key
+    newKeyboardMode(kKeyFlutterKey, metaKey, true);
+    await Future.delayed(const Duration(milliseconds: 50));
+
+    // Press I key
+    newKeyboardMode(kKeyFlutterKey, keyI, true);
+    await Future.delayed(const Duration(milliseconds: 50));
+
+    // Release I key
+    newKeyboardMode(kKeyFlutterKey, keyI, false);
+    await Future.delayed(const Duration(milliseconds: 50));
+
+    // Release Meta key
+    newKeyboardMode(kKeyFlutterKey, metaKey, false);
+  }
+
   // Simulate a key press event.
   // `usbHidUsage` is the USB HID usage code of the key.
   Future<void> tapHidKey(int usbHidUsage) async {
