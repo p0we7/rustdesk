@@ -11,6 +11,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_hbb/main.dart';
 import 'package:flutter_hbb/utils/multi_window_manager.dart';
 import 'package:get/get.dart';
+import 'package:system_settings_2/system_settings_2.dart';
 
 import '../../models/model.dart';
 import '../../models/platform_model.dart';
@@ -1532,24 +1533,12 @@ class InputModel {
   }
 
   Future<void> onMobileSettings() async {
-    // Open Android settings using Meta/Search key + I (equivalent to Win+I)
-    final metaKey = PhysicalKeyboardKey.metaLeft.usbHidUsage & 0xFFFF;
-    final keyI = PhysicalKeyboardKey.keyI.usbHidUsage & 0xFFFF;
-
-    // Press Meta key
-    newKeyboardMode(kKeyFlutterKey, metaKey, true);
-    await Future.delayed(const Duration(milliseconds: 50));
-
-    // Press I key
-    newKeyboardMode(kKeyFlutterKey, keyI, true);
-    await Future.delayed(const Duration(milliseconds: 50));
-
-    // Release I key
-    newKeyboardMode(kKeyFlutterKey, keyI, false);
-    await Future.delayed(const Duration(milliseconds: 50));
-
-    // Release Meta key
-    newKeyboardMode(kKeyFlutterKey, metaKey, false);
+    // Use system_settings_2 to open system settings on both iOS and Android
+    try {
+      await SystemSettings.system();
+    } catch (e) {
+      debugPrint('Failed to open system settings: $e');
+    }
   }
 
   // Simulate a key press event.

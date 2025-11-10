@@ -3812,6 +3812,7 @@ lazy_static::lazy_static! {
         ("RShift", Key::ControlKey(ControlKey::RShift)),
         ("CTRL_ALT_DEL", Key::ControlKey(ControlKey::CtrlAltDel)),
         ("LOCK_SCREEN", Key::ControlKey(ControlKey::LockScreen)),
+        ("Settings", Key::ControlKey(ControlKey::Settings)),
     ].iter().cloned().collect();
 }
 

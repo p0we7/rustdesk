@@ -116,6 +116,7 @@ object KeyEventConverter {
             ControlKey.VolumeUp -> KeyEvent.KEYCODE_VOLUME_UP
             ControlKey.VolumeDown -> KeyEvent.KEYCODE_VOLUME_DOWN
             ControlKey.Power -> KeyEvent.KEYCODE_POWER
+            ControlKey.Settings -> KeyEvent.KEYCODE_SETTINGS
             else -> 0 // Default to unknown.
         }
     }
