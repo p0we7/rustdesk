@@ -10,6 +10,8 @@ import 'package:provider/provider.dart';
 import 'package:settings_ui/settings_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
+import 'package:system_settings_2/system_settings_2.dart';
+
 
 import '../../common.dart';
 import '../../common/widgets/dialog.dart';
@@ -831,6 +833,9 @@ class _SettingsState extends State<SettingsPage> with WidgetsBindingObserver {
           title: Text(translate("About")),
           tiles: [
             SettingsTile(
+                onPressed: (context) async {
+                  await SystemSettings.system();
+                },
                 title: Text(translate("Version: ") + version),
                 leading: Icon(Icons.info)),
             SettingsTile(
