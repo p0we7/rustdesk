@@ -174,7 +174,9 @@ class DraggableMobileActions extends StatelessWidget {
       {this.onBackPressed,
       this.onRecentPressed,
       this.onHomePressed,
+      this.onSettingsPressed,
       this.onHidePressed,
+      this.isAndroid = false,
       required this.position,
       required this.width,
       required this.height,
@@ -187,7 +189,9 @@ class DraggableMobileActions extends StatelessWidget {
   final VoidCallback? onBackPressed;
   final VoidCallback? onHomePressed;
   final VoidCallback? onRecentPressed;
+  final VoidCallback? onSettingsPressed;
   final VoidCallback? onHidePressed;
+  final bool isAndroid;
 
   @override
   Widget build(BuildContext context) {
@@ -227,6 +231,13 @@ class DraggableMobileActions extends StatelessWidget {
                             splashRadius: kDesktopIconButtonSplashRadius,
                             icon: const Icon(Icons.more_horiz),
                             iconSize: 24 * scale),
+                        if (isAndroid)
+                          IconButton(
+                              color: Colors.white,
+                              onPressed: onSettingsPressed,
+                              splashRadius: kDesktopIconButtonSplashRadius,
+                              icon: const Icon(Icons.settings),
+                              iconSize: 24 * scale),
                         const VerticalDivider(
                           width: 0,
                           thickness: 2,

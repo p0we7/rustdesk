@@ -992,6 +992,7 @@ impl<T: InvokeUiSession> Session<T> {
             0x0080 => Some(ControlKey::VolumeUp),
             0x0081 => Some(ControlKey::VolumeDown),
             0x0066 => Some(ControlKey::Power),
+            0x0119 => Some(ControlKey::AndroidSettings),
             _ => None,
         };
         let Some(ctrl_key) = ctrl_key else { return };
