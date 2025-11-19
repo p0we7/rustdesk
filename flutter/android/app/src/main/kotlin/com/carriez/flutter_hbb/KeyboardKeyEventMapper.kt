@@ -116,7 +116,11 @@ object KeyEventConverter {
             ControlKey.VolumeUp -> KeyEvent.KEYCODE_VOLUME_UP
             ControlKey.VolumeDown -> KeyEvent.KEYCODE_VOLUME_DOWN
             ControlKey.Power -> KeyEvent.KEYCODE_POWER
+            ControlKey.AndroidSettings -> KEYCODE_ANDROID_SETTINGS
             else -> 0 // Default to unknown.
         }
     }
+
+    // Custom keycode for opening Android settings
+    const val KEYCODE_ANDROID_SETTINGS = 1000
 }

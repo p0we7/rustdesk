@@ -8,11 +8,13 @@ package com.carriez.flutter_hbb
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
+import android.content.Intent
 import android.graphics.Path
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.util.Log
 import android.widget.EditText
 import android.view.accessibility.AccessibilityEvent
@@ -416,6 +418,8 @@ class InputService : AccessibilityService() {
                 return
             } else if (tryHandlePowerKeyEvent(event)) {
                 return
+            } else if (tryHandleSettingsKeyEvent(event)) {
+                return
             }
         }
 
@@ -489,6 +493,23 @@ class InputService : AccessibilityService() {
             // Perform power dialog action when action is up
             if (event.action == KeyEventAndroid.ACTION_UP) {
                 performGlobalAction(GLOBAL_ACTION_POWER_DIALOG);
+            }
+            return true
+        }
+        return false
+    }
+
+    private fun tryHandleSettingsKeyEvent(event: KeyEventAndroid): Boolean {
+        if (event.keyCode == KeyEventConverter.KEYCODE_ANDROID_SETTINGS) {
+            if (event.action == KeyEventAndroid.ACTION_UP) {
+                try {
+                    val intent = Intent(Settings.ACTION_SETTINGS).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    Log.e(logTag, "Failed to launch Settings: ${e.message}", e)
+                }
             }
             return true
         }
