@@ -33,6 +33,11 @@ class HomePageState extends State<HomePage> {
       ? _selectedIndex == _chatPageTabIndex
       : false; // change this when ios have chat page
 
+  // Settings page hidden by default, show after 5 taps on title
+  int _titleTapCount = 0;
+  DateTime? _firstTapTime;
+  bool _settingsPageEnabled = false;
+
   void refreshPages() {
     setState(() {
       initPages();
@@ -56,7 +61,34 @@ class HomePageState extends State<HomePage> {
       // _chatPageTabIndex = _pages.length;  // 注释掉，因为不再有 ChatPage
       _pages.add(ServerPage());  // 只添加 ServerPage
     }
-    _pages.add(SettingsPage());
+    // Settings page is hidden by default, only show after 5 taps on title
+    if (_settingsPageEnabled) {
+      _pages.add(SettingsPage());
+    }
+  }
+
+  void _handleTitleTap() {
+    final now = DateTime.now();
+
+    // Check if this is the first tap or if 3 seconds have passed
+    if (_firstTapTime == null || now.difference(_firstTapTime!).inSeconds > 3) {
+      // Reset counter and start new counting sequence
+      _titleTapCount = 1;
+      _firstTapTime = now;
+    } else {
+      // Within 3 seconds, increment counter
+      _titleTapCount++;
+
+      // Check if we've reached 5 taps
+      if (_titleTapCount >= 5) {
+        setState(() {
+          _settingsPageEnabled = true;
+          _titleTapCount = 0; // Reset counter to prevent repeated triggering
+          _firstTapTime = null;
+        });
+        refreshPages();
+      }
+    }
   }
 
   @override
@@ -150,7 +182,10 @@ class HomePageState extends State<HomePage> {
         ],
       );
     }
-    return Text(bind.mainGetAppNameSync());
+    return GestureDetector(
+      onTap: _handleTitleTap,
+      child: Text(bind.mainGetAppNameSync()),
+    );
   }
 }
 
