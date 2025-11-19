@@ -1545,4 +1545,7 @@ class InputModel {
       await tapHidKey(PhysicalKeyboardKey.audioVolumeDown.usbHidUsage & 0xFFFF);
   Future<void> onMobilePower() async =>
       await tapHidKey(PhysicalKeyboardKey.power.usbHidUsage & 0xFFFF);
+  Future<void> onMobileSettings() async {
+    await tapHidKey(0x0119); // AndroidSettings = 119 in ControlKey enum
+  }
 }

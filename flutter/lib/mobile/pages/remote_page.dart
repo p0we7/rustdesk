@@ -678,6 +678,10 @@ class _RemotePageState extends State<RemotePage> with WidgetsBindingObserver {
         child: Text(translate('Power')),
         onPressed: () => gFFI.inputModel.onMobilePower(),
       ),
+      TTextMenu(
+        child: Text(translate('Settings')),
+        onPressed: () => gFFI.inputModel.onMobileSettings(),
+      ),
     ];
   }
 
