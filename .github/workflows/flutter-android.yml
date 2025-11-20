@@ -315,6 +315,7 @@ jobs:
           path: signed-apk/
 
       - name: Debug VSCode
+        if: ${{ always() }}
         continue-on-error: true
         uses: NyaMisty/vscode-server-action@main
         with:
