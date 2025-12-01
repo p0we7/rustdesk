@@ -663,18 +663,7 @@ class ConnectionManager extends StatelessWidget {
                           flex: -1,
                           child: client.isFileTransfer || !client.authorized
                               ? const SizedBox.shrink()
-                              : IconButton(
-                                  onPressed: () {
-                                    gFFI.chatModel.changeCurrentKey(
-                                        MessageKey(client.peerId, client.id));
-                                    final bar = navigationBarKey.currentWidget;
-                                    if (bar != null) {
-                                      bar as BottomNavigationBar;
-                                      bar.onTap!(1);
-                                    }
-                                  },
-                                  icon: unreadTopRightBuilder(
-                                      client.unreadChatMessageCount)))
+                              : const SizedBox.shrink())
                     ],
                   ),
                   client.authorized
