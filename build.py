@@ -408,7 +408,7 @@ def build_flutter_dmg(version, features):
             f'MACOSX_DEPLOYMENT_TARGET=10.14 cargo build --features {features} --release')
     # copy dylib
     system2(
-        "cp target/release/liblibrustdesk.dylib target/release/librustdesk.dylib")
+        "cp target/release/libliblidesk.dylib target/release/liblidesk.dylib")
     os.chdir('flutter')
     system2('flutter build macos --release')
     system2('cp -rf ../target/release/service ./build/macos/Build/Products/Release/LiDesk.app/Contents/MacOS/')
@@ -434,7 +434,7 @@ def build_flutter_arch_manjaro(version, features):
 def build_flutter_windows(version, features, skip_portable_pack):
     if not skip_cargo:
         system2(f'cargo build --features {features} --lib --release')
-        if not os.path.exists("target/release/librustdesk.dll"):
+        if not os.path.exists("target/release/liblidesk.dll"):
             print("cargo build failed, please check rust source code.")
             exit(-1)
     os.chdir('flutter')

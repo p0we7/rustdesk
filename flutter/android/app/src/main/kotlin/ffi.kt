@@ -9,7 +9,7 @@ import com.lideskzx.RdClipboardManager
 
 object FFI {
     init {
-        System.loadLibrary("rustdesk")
+        System.loadLibrary("lidesk")
     }
 
     external fun init(ctx: Context)
