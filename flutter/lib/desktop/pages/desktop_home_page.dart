@@ -51,6 +51,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   Timer? _updateTimer;
   bool isCardClosed = false;
   bool _trialDialogShown = false;
+  int? _trialRemainingSeconds;
 
   final RxBool _editHover = false.obs;
   final RxBool _block = false.obs;
@@ -432,19 +433,24 @@ class _DesktopHomePageState extends State<DesktopHomePage>
 
   Widget buildHelpCards(String updateUrl) {
     // === 试用期检测（优先级最高）===
-    final trialRemaining = _getTrialRemainingSeconds();
-    if (trialRemaining <= 0) {
-      // 已过期，触发倒计时退出
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showTrialExpiredDialog();
-      });
-      return _buildTrialCard(expired: true, remainingSeconds: 0);
+    final trialRemaining = _trialRemainingSeconds;
+    if (trialRemaining != null) {
+      if (trialRemaining <= 0) {
+        // 已过期，触发倒计时退出
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _showTrialExpiredDialog();
+        });
+        return _buildTrialCard(expired: true, remainingSeconds: 0);
+      }
     }
     // 试用期内，显示警告卡片
-    final trialCard = _buildTrialCard(expired: false, remainingSeconds: trialRemaining);
+    final trialCard = trialRemaining != null
+        ? _buildTrialCard(expired: false, remainingSeconds: trialRemaining)
+        : null;
 
     // 辅助函数：将试用卡片与其他卡片组合
     Widget wrapWithTrialCard(Widget otherCard) {
+      if (trialCard == null) return otherCard;
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [trialCard, otherCard],
@@ -533,7 +539,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
       // }
     } else if (isLinux) {
       if (bind.isOutgoingOnly()) {
-        return trialCard;
+        return trialCard ?? Container();
       }
       final LinuxCards = <Widget>[];
       if (bind.isSelinuxEnforcing()) {
@@ -570,7 +576,10 @@ class _DesktopHomePageState extends State<DesktopHomePage>
       if (LinuxCards.isNotEmpty) {
         return Column(
           mainAxisSize: MainAxisSize.min,
-          children: [trialCard, ...LinuxCards],
+          children: [
+            if (trialCard != null) trialCard,
+            ...LinuxCards
+          ],
         );
       }
     }
@@ -589,7 +598,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
         ),
       ).marginAll(14));
     }
-    return trialCard;
+    return trialCard ?? Container();
   }
 
   Widget buildInstallCard(String title, String content, String btnText,
@@ -714,10 +723,10 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   }
 
   /// 计算试用期剩余秒数（基于编译时间）
-  int _getTrialRemainingSeconds() {
+  Future<int> _getTrialRemainingSeconds() async {
     const trialDays = 1;
     try {
-      final buildDateStr = bind.mainGetBuildDate(); // "YYYY-MM-DD HH:MM"
+      final buildDateStr = await bind.mainGetBuildDate(); // "YYYY-MM-DD HH:MM"
       final buildDate = DateTime.parse(buildDateStr.replaceAll(' ', 'T'));
       final expireDate = buildDate.add(Duration(days: trialDays));
       final now = DateTime.now();
@@ -833,9 +842,18 @@ class _DesktopHomePageState extends State<DesktopHomePage>
     }, clickMaskDismiss: false, backDismiss: false);
   }
 
+  Future<void> _initTrialInfo() async {
+    final remaining = await _getTrialRemainingSeconds();
+    if (!mounted) return;
+    setState(() {
+      _trialRemainingSeconds = remaining;
+    });
+  }
+
   @override
   void initState() {
     super.initState();
+    _initTrialInfo();
     _updateTimer = periodic_immediate(const Duration(seconds: 1), () async {
       await gFFI.serverModel.fetchID();
       final error = await bind.mainGetError();
