@@ -459,7 +459,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
     if (isWindows && !bind.isDisableInstallation()) {
       if (!bind.mainIsInstalled()) {
         return buildInstallCard(
-            "", bind.isOutgoingOnly() ? "" : "install_tip", "Install",
+            "", bind.isOutgoingOnly() ? "" : "", "Install",
             () async {
           await rustDeskWinManager.closeAllSubWindows();
           bind.mainGotoInstall();
