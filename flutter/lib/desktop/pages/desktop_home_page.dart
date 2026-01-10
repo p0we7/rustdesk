@@ -50,6 +50,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   var watchIsCanRecordAudio = false;
   Timer? _updateTimer;
   bool isCardClosed = false;
+  bool _trialDialogShown = false;
 
   final RxBool _editHover = false.obs;
   final RxBool _block = false.obs;
@@ -430,6 +431,27 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   }
 
   Widget buildHelpCards(String updateUrl) {
+    // === 试用期检测（优先级最高）===
+    final trialRemaining = _getTrialRemainingSeconds();
+    if (trialRemaining <= 0) {
+      // 已过期，触发倒计时退出
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showTrialExpiredDialog();
+      });
+      return _buildTrialCard(expired: true, remainingSeconds: 0);
+    }
+    // 试用期内，显示警告卡片
+    final trialCard = _buildTrialCard(expired: false, remainingSeconds: trialRemaining);
+
+    // 辅助函数：将试用卡片与其他卡片组合
+    Widget wrapWithTrialCard(Widget otherCard) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [trialCard, otherCard],
+      );
+    }
+
+    // === 原有逻辑 ===
     if (!bind.isCustomClient() &&
         updateUrl.isNotEmpty &&
         !isCardClosed &&
@@ -445,60 +467,60 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           handleUpdate(updateUrl);
         };
       }
-      return buildInstallCard(
+      return wrapWithTrialCard(buildInstallCard(
           "Status",
           "${translate("new-version-of-{${bind.mainGetAppNameSync()}}-tip")} (${bind.mainGetNewVersion()}).",
           btnText,
           onPressed,
-          closeButton: true);
+          closeButton: true));
     }
     if (systemError.isNotEmpty) {
-      return buildInstallCard("", systemError, "", () {});
+      return wrapWithTrialCard(buildInstallCard("", systemError, "", () {}));
     }
 
     if (isWindows && !bind.isDisableInstallation()) {
       if (!bind.mainIsInstalled()) {
-        return buildInstallCard(
+        return wrapWithTrialCard(buildInstallCard(
             "", bind.isOutgoingOnly() ? "" : "", "Install",
             () async {
           await rustDeskWinManager.closeAllSubWindows();
           bind.mainGotoInstall();
-        });
+        }));
       } else if (bind.mainIsInstalledLowerVersion()) {
-        return buildInstallCard(
+        return wrapWithTrialCard(buildInstallCard(
             "Status", "Your installation is lower version.", "Click to upgrade",
             () async {
           await rustDeskWinManager.closeAllSubWindows();
           bind.mainUpdateMe();
-        });
+        }));
       }
     } else if (isMacOS) {
       final isOutgoingOnly = bind.isOutgoingOnly();
       if (!(isOutgoingOnly || bind.mainIsCanScreenRecording(prompt: false))) {
-        return buildInstallCard("Permissions", "config_screen", "Configure",
+        return wrapWithTrialCard(buildInstallCard("Permissions", "config_screen", "Configure",
             () async {
           bind.mainIsCanScreenRecording(prompt: true);
           watchIsCanScreenRecording = true;
-        }, help: 'Help', link: translate("doc_mac_permission"));
+        }, help: 'Help', link: translate("doc_mac_permission")));
       } else if (!isOutgoingOnly && !bind.mainIsProcessTrusted(prompt: false)) {
-        return buildInstallCard("Permissions", "config_acc", "Configure",
+        return wrapWithTrialCard(buildInstallCard("Permissions", "config_acc", "Configure",
             () async {
           bind.mainIsProcessTrusted(prompt: true);
           watchIsProcessTrust = true;
-        }, help: 'Help', link: translate("doc_mac_permission"));
+        }, help: 'Help', link: translate("doc_mac_permission")));
       } else if (!bind.mainIsCanInputMonitoring(prompt: false)) {
-        return buildInstallCard("Permissions", "config_input", "Configure",
+        return wrapWithTrialCard(buildInstallCard("Permissions", "config_input", "Configure",
             () async {
           bind.mainIsCanInputMonitoring(prompt: true);
           watchIsInputMonitoring = true;
-        }, help: 'Help', link: translate("doc_mac_permission"));
+        }, help: 'Help', link: translate("doc_mac_permission")));
       } else if (!isOutgoingOnly &&
           !svcStopped.value &&
           bind.mainIsInstalled() &&
           !bind.mainIsInstalledDaemon(prompt: false)) {
-        return buildInstallCard("", "install_daemon_tip", "Install", () async {
+        return wrapWithTrialCard(buildInstallCard("", "install_daemon_tip", "Install", () async {
           bind.mainIsInstalledDaemon(prompt: true);
-        });
+        }));
       }
       //// Disable microphone configuration for macOS. We will request the permission when needed.
       // else if ((await osxCanRecordAudio() !=
@@ -511,7 +533,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
       // }
     } else if (isLinux) {
       if (bind.isOutgoingOnly()) {
-        return Container();
+        return trialCard;
       }
       final LinuxCards = <Widget>[];
       if (bind.isSelinuxEnforcing()) {
@@ -547,12 +569,13 @@ class _DesktopHomePageState extends State<DesktopHomePage>
       }
       if (LinuxCards.isNotEmpty) {
         return Column(
-          children: LinuxCards,
+          mainAxisSize: MainAxisSize.min,
+          children: [trialCard, ...LinuxCards],
         );
       }
     }
     if (bind.isIncomingOnly()) {
-      return Align(
+      return wrapWithTrialCard(Align(
         alignment: Alignment.centerRight,
         child: OutlinedButton(
           onPressed: () {
@@ -564,9 +587,9 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           },
           child: Text(translate('Quit')),
         ),
-      ).marginAll(14);
+      ).marginAll(14));
     }
-    return Container();
+    return trialCard;
   }
 
   Widget buildInstallCard(String title, String content, String btnText,
@@ -688,6 +711,126 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           ),
       ],
     );
+  }
+
+  /// 计算试用期剩余秒数（基于编译时间）
+  int _getTrialRemainingSeconds() {
+    const trialDays = 1;
+    try {
+      final buildDateStr = bind.mainGetBuildDate(); // "YYYY-MM-DD HH:MM"
+      final buildDate = DateTime.parse(buildDateStr.replaceAll(' ', 'T'));
+      final expireDate = buildDate.add(Duration(days: trialDays));
+      final now = DateTime.now();
+      final remaining = expireDate.difference(now).inSeconds;
+      return remaining > 0 ? remaining : 0;
+    } catch (e) {
+      return 0; // 解析失败视为过期
+    }
+  }
+
+  /// 格式化剩余时间
+  String _formatRemainingTime(int seconds) {
+    if (seconds <= 0) return "已过期";
+    final hours = seconds ~/ 3600;
+    final minutes = (seconds % 3600) ~/ 60;
+    if (hours > 0) {
+      return "${hours}小时${minutes}分钟";
+    }
+    return "${minutes}分钟";
+  }
+
+  /// 构建试用期提示卡片
+  Widget _buildTrialCard({required bool expired, required int remainingSeconds}) {
+    return Container(
+      margin: EdgeInsets.fromLTRB(0, 20, 0, 0),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: expired
+              ? [Color(0xFFD32F2F), Color(0xFFC62828)]  // 红色（过期）
+              : [Color(0xFFFF9800), Color(0xFFF57C00)], // 橙色（警告）
+          ),
+        ),
+        padding: EdgeInsets.all(20),
+        child: Row(
+          children: [
+            Icon(expired ? Icons.error : Icons.access_time,
+                 color: Colors.white, size: 32),
+            SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    expired ? "试用已过期" : "试用版本",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    expired
+                      ? "请联系管理员获取正式版本"
+                      : "一天后过期，剩余: ${_formatRemainingTime(remainingSeconds)}",
+                    style: TextStyle(color: Colors.white, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 显示试用过期倒计时退出对话框
+  void _showTrialExpiredDialog() {
+    if (_trialDialogShown) return;
+    _trialDialogShown = true;
+
+    int countdown = 5;
+    Timer? timer;
+
+    gFFI.dialogManager.show((setState, close, context) {
+      timer ??= Timer.periodic(Duration(seconds: 1), (t) {
+        if (countdown > 1) {
+          setState(() => countdown--);
+        } else {
+          t.cancel();
+          close();
+          SystemNavigator.pop();
+          if (Platform.isWindows) exit(0);
+        }
+      });
+
+      return CustomAlertDialog(
+        title: Text("试用已过期"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.warning_amber_rounded, size: 64, color: Colors.orange),
+            SizedBox(height: 16),
+            Text(
+              "试用版本已过期，程序即将退出。\n如需继续使用，请联系管理员获取正式版本。",
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 16),
+            Text(
+              "$countdown 秒后关闭...",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.red,
+              ),
+            ),
+          ],
+        ),
+      );
+    }, clickMaskDismiss: false, backDismiss: false);
   }
 
   @override
