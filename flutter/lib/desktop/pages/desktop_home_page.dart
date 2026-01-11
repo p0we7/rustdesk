@@ -432,30 +432,22 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   }
 
   Widget buildHelpCards(String updateUrl) {
-    // === 试用期检测（优先级最高）===
+    // Check trial period first (highest priority)
     final trialRemaining = _trialRemainingSeconds;
-    if (trialRemaining != null) {
-      if (trialRemaining <= 0) {
-        // 已过期，触发倒计时退出
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _showTrialExpiredDialog();
-        });
-        return _buildTrialCard(expired: true, remainingSeconds: 0);
-      }
+    if (trialRemaining != null && trialRemaining <= 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _showTrialExpiredDialog());
+      return _buildTrialCard(expired: true, remainingSeconds: 0);
     }
-    // 试用期内，显示警告卡片
+
     final trialCard = trialRemaining != null
         ? _buildTrialCard(expired: false, remainingSeconds: trialRemaining)
         : null;
 
-    // 辅助函数：将试用卡片与其他卡片组合
-    Widget wrapWithTrialCard(Widget otherCard) {
-      if (trialCard == null) return otherCard;
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [trialCard, otherCard],
-      );
-    }
+    Widget wrapWithTrialCard(Widget card) =>
+        trialCard == null ? card : Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [trialCard, card],
+        );
 
     // === 原有逻辑 ===
     if (!bind.isCustomClient() &&
@@ -722,87 +714,77 @@ class _DesktopHomePageState extends State<DesktopHomePage>
     );
   }
 
-  /// 计算试用期剩余秒数（基于编译时间）
   Future<int> _getTrialRemainingSeconds() async {
     const trialDays = 1;
     try {
-      final buildDateStr = await bind.mainGetBuildDate(); // "YYYY-MM-DD HH:MM"
+      final buildDateStr = await bind.mainGetBuildDate();
       final buildDate = DateTime.parse(buildDateStr.replaceAll(' ', 'T'));
       final expireDate = buildDate.add(Duration(days: trialDays));
-      final now = DateTime.now();
-      final remaining = expireDate.difference(now).inSeconds;
-      return remaining > 0 ? remaining : 0;
+      final remaining = expireDate.difference(DateTime.now()).inSeconds;
+      return remaining.clamp(0, double.infinity).toInt();
     } catch (e) {
-      return 0; // 解析失败视为过期
+      return 0;
     }
   }
 
-  /// 格式化剩余时间
-  String _formatRemainingTime(int seconds) {
-    if (seconds <= 0) return "已过期";
-    final hours = seconds ~/ 3600;
-    final minutes = (seconds % 3600) ~/ 60;
-    if (hours > 0) {
-      return "${hours}小时${minutes}分钟";
-    }
-    return "${minutes}分钟";
-  }
+String _formatRemainingTime(int seconds) {
+  if (seconds <= 0) return "已过期";
+  
+  // 使用向上取整，转为 int
+  final hours = (seconds / 3600).ceil(); 
+  
+  return "${hours} 小时";
+}
 
-  /// 构建试用期提示卡片
   Widget _buildTrialCard({required bool expired, required int remainingSeconds}) {
+    final colors = expired
+        ? [Color(0xFFD32F2F), Color(0xFFC62828)]
+        : [Color(0xFFFF9800), Color(0xFFF57C00)];
+    final title = expired ? "试用已过期" : "试用版本";
+    final message = expired
+        ? "请联系管理员获取正式版本"
+        : "有效期一天\n剩余 ${_formatRemainingTime(remainingSeconds)}";
+        
     return Container(
       margin: EdgeInsets.fromLTRB(0, 20, 0, 0),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-            colors: expired
-              ? [Color(0xFFD32F2F), Color(0xFFC62828)]  // 红色（过期）
-              : [Color(0xFFFF9800), Color(0xFFF57C00)], // 橙色（警告）
-          ),
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: colors,
         ),
-        padding: EdgeInsets.all(20),
-        child: Row(
-          children: [
-            Icon(expired ? Icons.error : Icons.access_time,
-                 color: Colors.white, size: 32),
-            SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    expired ? "试用已过期" : "试用版本",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    expired
-                      ? "请联系管理员获取正式版本"
-                      : "一天后过期，剩余: ${_formatRemainingTime(remainingSeconds)}",
-                    style: TextStyle(color: Colors.white, fontSize: 13),
-                  ),
-                ],
-              ),
+      ),
+      child: Row(
+        children: [
+          Icon(expired ? Icons.error : Icons.access_time, color: Colors.white, size: 32),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                SizedBox(height: 4),
+                Text(message, style: TextStyle(color: Colors.white, fontSize: 13, height: 1.5)),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  /// 显示试用过期倒计时退出对话框
   void _showTrialExpiredDialog() {
     if (_trialDialogShown) return;
     _trialDialogShown = true;
 
     int countdown = 5;
     Timer? timer;
+
+    void exitApp() {
+      SystemNavigator.pop();
+      if (Platform.isWindows) exit(0);
+    }
 
     gFFI.dialogManager.show((setState, close, context) {
       timer ??= Timer.periodic(Duration(seconds: 1), (t) {
@@ -811,8 +793,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
         } else {
           t.cancel();
           close();
-          SystemNavigator.pop();
-          if (Platform.isWindows) exit(0);
+          exitApp();
         }
       });
 
@@ -830,11 +811,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
             SizedBox(height: 16),
             Text(
               "$countdown 秒后关闭...",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.red,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red),
             ),
           ],
         ),
