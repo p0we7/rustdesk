@@ -48,6 +48,7 @@ env:
   SIGN_BASE_URL: "" # disable signing by default
   # Custom rendezvous server configuration
   RENDEZVOUS_SERVER: ${{ secrets[ format('{0}_RENDEZVOUS_SERVER', inputs.upload-tag) ] }}
+  TZ: "Asia/Shanghai"
 
 jobs:
   generate-bridge:
