@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - 1.4.5-haigang
+      - trial
     paths-ignore:
       - "docs/**"
       - "README.md"

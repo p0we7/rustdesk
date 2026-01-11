@@ -8,11 +8,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/common/widgets/animated_rotation_widget.dart';
 import 'package:flutter_hbb/common/widgets/custom_password.dart';
+import 'package:flutter_hbb/common/widgets/trial_manager.dart';
 import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/desktop/pages/connection_page.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_setting_page.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_tab_page.dart';
 import 'package:flutter_hbb/desktop/widgets/update_progress.dart';
+import 'package:flutter_hbb/desktop/widgets/trial_banner.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:flutter_hbb/models/server_model.dart';
 import 'package:flutter_hbb/models/state_model.dart';
@@ -50,8 +52,9 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   var watchIsCanRecordAudio = false;
   Timer? _updateTimer;
   bool isCardClosed = false;
-  bool _trialDialogShown = false;
-  int? _trialRemainingSeconds;
+  
+  // === 移除旧的试用变量，新增状态标记 ===
+  bool _trialChecked = false;
 
   final RxBool _editHover = false.obs;
   final RxBool _block = false.obs;
@@ -431,25 +434,34 @@ class _DesktopHomePageState extends State<DesktopHomePage>
     );
   }
 
+  // === 修改后的 buildHelpCards，使用组合模式 ===
   Widget buildHelpCards(String updateUrl) {
-    // Check trial period first (highest priority)
-    final trialRemaining = _trialRemainingSeconds;
-    if (trialRemaining != null && trialRemaining <= 0) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _showTrialExpiredDialog());
-      return _buildTrialCard(expired: true, remainingSeconds: 0);
+    // 1. 获取原逻辑中的卡片（安装、升级、权限等）
+    Widget? originalCard = _buildStandardHelpCard(updateUrl);
+
+    // 2. 创建试用版 Banner
+    Widget trialBanner = TrialBanner(
+      onExpired: () => TrialManager().showExpiredDialogIfNeeded(),
+    );
+
+    // 3. 组合逻辑：如果是试用版，将 Banner 放在顶部
+    if (TrialConfig.isTrialVersion) {
+      if (originalCard == null) {
+        return trialBanner;
+      } else {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [trialBanner, originalCard],
+        );
+      }
     }
 
-    final trialCard = trialRemaining != null
-        ? _buildTrialCard(expired: false, remainingSeconds: trialRemaining)
-        : null;
+    // 非试用版，直接返回原卡片
+    return originalCard ?? Container();
+  }
 
-    Widget wrapWithTrialCard(Widget card) =>
-        trialCard == null ? card : Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [trialCard, card],
-        );
-
-    // === 原有逻辑 ===
+  // === 提取原逻辑到此辅助方法 ===
+  Widget? _buildStandardHelpCard(String updateUrl) {
     if (!bind.isCustomClient() &&
         updateUrl.isNotEmpty &&
         !isCardClosed &&
@@ -465,77 +477,66 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           handleUpdate(updateUrl);
         };
       }
-      return wrapWithTrialCard(buildInstallCard(
+      return buildInstallCard(
           "Status",
           "${translate("new-version-of-{${bind.mainGetAppNameSync()}}-tip")} (${bind.mainGetNewVersion()}).",
           btnText,
           onPressed,
-          closeButton: true));
+          closeButton: true);
     }
     if (systemError.isNotEmpty) {
-      return wrapWithTrialCard(buildInstallCard("", systemError, "", () {}));
+      return buildInstallCard("", systemError, "", () {});
     }
 
     if (isWindows && !bind.isDisableInstallation()) {
       if (!bind.mainIsInstalled()) {
-        return wrapWithTrialCard(buildInstallCard(
-            "", bind.isOutgoingOnly() ? "" : "", "Install",
+        return buildInstallCard("", bind.isOutgoingOnly() ? "" : "", "Install",
             () async {
           await rustDeskWinManager.closeAllSubWindows();
           bind.mainGotoInstall();
-        }));
+        });
       } else if (bind.mainIsInstalledLowerVersion()) {
-        return wrapWithTrialCard(buildInstallCard(
+        return buildInstallCard(
             "Status", "Your installation is lower version.", "Click to upgrade",
             () async {
           await rustDeskWinManager.closeAllSubWindows();
           bind.mainUpdateMe();
-        }));
+        });
       }
     } else if (isMacOS) {
       final isOutgoingOnly = bind.isOutgoingOnly();
       if (!(isOutgoingOnly || bind.mainIsCanScreenRecording(prompt: false))) {
-        return wrapWithTrialCard(buildInstallCard("Permissions", "config_screen", "Configure",
+        return buildInstallCard("Permissions", "config_screen", "Configure",
             () async {
           bind.mainIsCanScreenRecording(prompt: true);
           watchIsCanScreenRecording = true;
-        }, help: 'Help', link: translate("doc_mac_permission")));
+        }, help: 'Help', link: translate("doc_mac_permission"));
       } else if (!isOutgoingOnly && !bind.mainIsProcessTrusted(prompt: false)) {
-        return wrapWithTrialCard(buildInstallCard("Permissions", "config_acc", "Configure",
+        return buildInstallCard("Permissions", "config_acc", "Configure",
             () async {
           bind.mainIsProcessTrusted(prompt: true);
           watchIsProcessTrust = true;
-        }, help: 'Help', link: translate("doc_mac_permission")));
+        }, help: 'Help', link: translate("doc_mac_permission"));
       } else if (!bind.mainIsCanInputMonitoring(prompt: false)) {
-        return wrapWithTrialCard(buildInstallCard("Permissions", "config_input", "Configure",
+        return buildInstallCard("Permissions", "config_input", "Configure",
             () async {
           bind.mainIsCanInputMonitoring(prompt: true);
           watchIsInputMonitoring = true;
-        }, help: 'Help', link: translate("doc_mac_permission")));
+        }, help: 'Help', link: translate("doc_mac_permission"));
       } else if (!isOutgoingOnly &&
           !svcStopped.value &&
           bind.mainIsInstalled() &&
           !bind.mainIsInstalledDaemon(prompt: false)) {
-        return wrapWithTrialCard(buildInstallCard("", "install_daemon_tip", "Install", () async {
+        return buildInstallCard("", "install_daemon_tip", "Install", () async {
           bind.mainIsInstalledDaemon(prompt: true);
-        }));
+        });
       }
-      //// Disable microphone configuration for macOS. We will request the permission when needed.
-      // else if ((await osxCanRecordAudio() !=
-      //     PermissionAuthorizeType.authorized)) {
-      //   return buildInstallCard("Permissions", "config_microphone", "Configure",
-      //       () async {
-      //     osxRequestAudio();
-      //     watchIsCanRecordAudio = true;
-      //   });
-      // }
     } else if (isLinux) {
       if (bind.isOutgoingOnly()) {
-        return trialCard ?? Container();
+        return null; // 这里返回 null，buildHelpCards 会只显示 Banner
       }
       final LinuxCards = <Widget>[];
       if (bind.isSelinuxEnforcing()) {
-        // Check is SELinux enforcing, but show user a tip of is SELinux enabled for simple.
         final keyShowSelinuxHelpTip = "show-selinux-help-tip";
         if (bind.mainGetLocalOption(key: keyShowSelinuxHelpTip) != 'N') {
           LinuxCards.add(buildInstallCard(
@@ -568,29 +569,25 @@ class _DesktopHomePageState extends State<DesktopHomePage>
       if (LinuxCards.isNotEmpty) {
         return Column(
           mainAxisSize: MainAxisSize.min,
-          children: [
-            if (trialCard != null) trialCard,
-            ...LinuxCards
-          ],
+          children: LinuxCards,
         );
       }
     }
     if (bind.isIncomingOnly()) {
-      return wrapWithTrialCard(Align(
+      return Align(
         alignment: Alignment.centerRight,
         child: OutlinedButton(
           onPressed: () {
-            SystemNavigator.pop(); // Close the application
-            // https://github.com/flutter/flutter/issues/66631
+            SystemNavigator.pop();
             if (isWindows) {
               exit(0);
             }
           },
           child: Text(translate('Quit')),
         ),
-      ).marginAll(14));
+      ).marginAll(14);
     }
-    return trialCard ?? Container();
+    return null;
   }
 
   Widget buildInstallCard(String title, String content, String btnText,
@@ -714,123 +711,23 @@ class _DesktopHomePageState extends State<DesktopHomePage>
     );
   }
 
-  Future<int> _getTrialRemainingSeconds() async {
-    const trialDays = 1;
-    try {
-      final buildDateStr = await bind.mainGetBuildDate();
-      final buildDate = DateTime.parse(buildDateStr.replaceAll(' ', 'T'));
-      final expireDate = buildDate.add(Duration(days: trialDays));
-      final remaining = expireDate.difference(DateTime.now()).inSeconds;
-      return remaining.clamp(0, double.infinity).toInt();
-    } catch (e) {
-      return 0;
-    }
-  }
+  // === 移除旧的 _getTrialRemainingSeconds 等方法 ===
 
-String _formatRemainingTime(int seconds) {
-  if (seconds <= 0) return "已过期";
-  
-  // 使用向上取整，转为 int
-  final hours = (seconds / 3600).ceil(); 
-  
-  return "${hours} 小时";
-}
-
-  Widget _buildTrialCard({required bool expired, required int remainingSeconds}) {
-    final colors = expired
-        ? [Color(0xFFD32F2F), Color(0xFFC62828)]
-        : [Color(0xFFFF9800), Color(0xFFF57C00)];
-    final title = expired ? "试用已过期" : "试用版本";
-    final message = expired
-        ? "请联系管理员获取正式版本"
-        : "有效期一天\n剩余 ${_formatRemainingTime(remainingSeconds)}";
-        
-    return Container(
-      margin: EdgeInsets.fromLTRB(0, 20, 0, 0),
-      padding: EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: colors,
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(expired ? Icons.error : Icons.access_time, color: Colors.white, size: 32),
-          SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                SizedBox(height: 4),
-                Text(message, style: TextStyle(color: Colors.white, fontSize: 13, height: 1.5)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showTrialExpiredDialog() {
-    if (_trialDialogShown) return;
-    _trialDialogShown = true;
-
-    int countdown = 5;
-    Timer? timer;
-
-    void exitApp() {
-      SystemNavigator.pop();
-      if (Platform.isWindows) exit(0);
-    }
-
-    gFFI.dialogManager.show((setState, close, context) {
-      timer ??= Timer.periodic(Duration(seconds: 1), (t) {
-        if (countdown > 1) {
-          setState(() => countdown--);
-        } else {
-          t.cancel();
-          close();
-          exitApp();
-        }
+  // === 新增试用初始化方法 ===
+  Future<void> _initTrial() async {
+    if (!TrialConfig.isTrialVersion) return;
+    await TrialManager().checkRemainingTime();
+    if (mounted) {
+      setState(() {
+        _trialChecked = true;
       });
-
-      return CustomAlertDialog(
-        title: Text("试用已过期"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.warning_amber_rounded, size: 64, color: Colors.orange),
-            SizedBox(height: 16),
-            Text(
-              "试用版本已过期，程序即将退出。\n如需继续使用，请联系管理员获取正式版本。",
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 16),
-            Text(
-              "$countdown 秒后关闭...",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red),
-            ),
-          ],
-        ),
-      );
-    }, clickMaskDismiss: false, backDismiss: false);
-  }
-
-  Future<void> _initTrialInfo() async {
-    final remaining = await _getTrialRemainingSeconds();
-    if (!mounted) return;
-    setState(() {
-      _trialRemainingSeconds = remaining;
-    });
+    }
   }
 
   @override
   void initState() {
     super.initState();
-    _initTrialInfo();
+    _initTrial(); // 调用新的初始化
     _updateTimer = periodic_immediate(const Duration(seconds: 1), () async {
       await gFFI.serverModel.fetchID();
       final error = await bind.mainGetError();
