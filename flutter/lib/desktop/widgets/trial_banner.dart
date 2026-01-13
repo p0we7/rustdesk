@@ -3,13 +3,18 @@ import 'package:flutter_hbb/common/widgets/trial_manager.dart'; // 引入上面�
 
 class TrialBanner extends StatelessWidget {
   final VoidCallback? onExpired;
+  final bool isTrialVersion;
 
-  const TrialBanner({Key? key, this.onExpired}) : super(key: key);
+  const TrialBanner({
+    Key? key,
+    this.onExpired,
+    required this.isTrialVersion,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     // 如果配置关闭，直接不渲染
-    if (!TrialConfig.isTrialVersion) return const SizedBox.shrink();
+    if (!isTrialVersion) return const SizedBox.shrink();
 
     final manager = TrialManager();
     // 这里假设 manager 已经在上层初始化并计算过时间

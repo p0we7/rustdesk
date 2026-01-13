@@ -55,6 +55,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   
   // === 移除旧的试用变量，新增状态标记 ===
   bool _trialChecked = false;
+  bool _isTrialVersion = false;
 
   final RxBool _editHover = false.obs;
   final RxBool _block = false.obs;
@@ -442,10 +443,11 @@ class _DesktopHomePageState extends State<DesktopHomePage>
     // 2. 创建试用版 Banner
     Widget trialBanner = TrialBanner(
       onExpired: () => TrialManager().showExpiredDialogIfNeeded(),
+      isTrialVersion: _isTrialVersion,
     );
 
     // 3. 组合逻辑：如果是试用版，将 Banner 放在顶部
-    if (TrialConfig.isTrialVersion) {
+    if (_isTrialVersion) {
       if (originalCard == null) {
         return trialBanner;
       } else {
@@ -715,7 +717,10 @@ class _DesktopHomePageState extends State<DesktopHomePage>
 
   // === 新增试用初始化方法 ===
   Future<void> _initTrial() async {
-    if (!TrialConfig.isTrialVersion) return;
+    final isTrial = await TrialConfig.isTrialVersion();
+    if (!isTrial) return;
+
+    _isTrialVersion = true;
     await TrialManager().checkRemainingTime();
     if (mounted) {
       setState(() {
