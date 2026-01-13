@@ -1691,6 +1691,9 @@ if exist \"{path}\" del /f /q \"{path}\"
     // in some windows, \r\n required for cmd file to run
     cmds = cmds.replace("\r\n", "\n").replace("\n", "\r\n");
     if ext == "vbs" {
+        // UTF-16LE BOM (0xFF 0xFE) required for VBS to recognize Chinese characters
+        let bom: [u8; 2] = [0xFF, 0xFE];
+        file.write_all(&bom)?;
         let mut v: Vec<u16> = cmds.encode_utf16().collect();
         // utf8 -> utf16le which vbs support it only
         file.write_all(to_le(&mut v))?;
