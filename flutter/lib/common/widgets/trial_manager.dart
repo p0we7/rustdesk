@@ -3,18 +3,22 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 // 引入必要的 RustDesk 绑定
-import 'package:flutter_hbb/models/platform_model.dart'; 
+import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:flutter_hbb/common/shared_state.dart'; // 假设 bind 在这里或 global
 import 'package:flutter_hbb/common.dart'; // 引入 gFFI
 
 /// 试用版配置
 class TrialConfig {
-  // === 开关在这里 ===
-  // 将此变量设为 false，即可编译出无试用限制的版本
-  static const bool isTrialVersion = true; 
-  
+  static bool? _isTrialVersion;
+
+  /// 从 Rust FFI 获取是否为试用版本（编译时环境变量控制）
+  static Future<bool> isTrialVersion() async {
+    _isTrialVersion ??= await bind.mainIsTrialVersion();
+    return _isTrialVersion!;
+  }
+
   // 试用天数
-  static const int trialDays = 1; 
+  static const int trialDays = 1;
 }
 
 /// 试用版逻辑管理器
@@ -28,7 +32,7 @@ class TrialManager {
 
   /// 计算剩余时间
   Future<int> checkRemainingTime() async {
-    if (!TrialConfig.isTrialVersion) return -1; // 非试用版返回 -1
+    if (!await TrialConfig.isTrialVersion()) return -1; // 非试用版返回 -1
 
     try {
       final buildDateStr = await bind.mainGetBuildDate();
@@ -55,8 +59,8 @@ class TrialManager {
   bool get isExpired => (_remainingSeconds != null && _remainingSeconds! <= 0);
 
   /// 显示过期强制退出弹窗
-  void showExpiredDialogIfNeeded() {
-    if (!TrialConfig.isTrialVersion) return;
+  Future<void> showExpiredDialogIfNeeded() async {
+    if (!await TrialConfig.isTrialVersion()) return;
     if (!isExpired || _dialogShown) return;
 
     _dialogShown = true;

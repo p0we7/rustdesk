@@ -1093,6 +1093,10 @@ pub fn main_is_using_public_server() -> bool {
     crate::using_public_server()
 }
 
+pub fn main_is_trial_version() -> bool {
+    crate::common::is_trial_version()
+}
+
 pub fn main_discover() {
     discover();
 }

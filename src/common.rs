@@ -1741,6 +1741,11 @@ pub fn using_public_server() -> bool {
         && crate::get_custom_rendezvous_server(get_option("custom-rendezvous-server")).is_empty()
 }
 
+#[inline]
+pub fn is_trial_version() -> bool {
+    option_env!("IS_TRIAL_VERSION").unwrap_or("true") != "false"
+}
+
 pub struct ThrottledInterval {
     interval: Interval,
     next_tick: Instant,

@@ -9,6 +9,9 @@ on:
       upload-tag:
         type: string
         default: "nightly"
+      is-trial-version:
+        type: boolean
+        default: true
 
 # NOTE: F-Droid builder script 'flutter/build_fdroid.sh' reads environment
 # variables from this workflow!
@@ -34,7 +37,7 @@ env:
   # vcpkg version: 2025.08.27
   # If we change the `VCPKG COMMIT_ID`, please remember:
   # 1. Call `$VCPKG_ROOT/vcpkg x-update-baseline` to update the baseline in `vcpkg.json`.
-  #  Or we may face build issue like 
+  #  Or we may face build issue like
   #  https://github.com/rustdesk/rustdesk/actions/runs/14414119794/job/40427970174
   # 2. Update the `VCPKG_COMMIT_ID` in `ci.yml` and `playground.yml`.
   VCPKG_COMMIT_ID: "120deac3062162151622ca4860575a33844ba10b"
@@ -48,6 +51,7 @@ env:
   SIGN_BASE_URL: "" # disable signing by default
   # Custom rendezvous server configuration
   RENDEZVOUS_SERVER: ${{ secrets[ format('{0}_RENDEZVOUS_SERVER', inputs.upload-tag) ] }}
+  IS_TRIAL_VERSION: "${{ inputs.is-trial-version }}"
   TZ: "Asia/Shanghai"
 
 jobs:

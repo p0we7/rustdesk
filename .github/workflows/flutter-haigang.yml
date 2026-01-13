@@ -2,6 +2,11 @@ name: Flutter HaiGang Build
 
 on:
   workflow_dispatch:
+    inputs:
+      is_trial_version:
+        description: '是否编译试用版本'
+        type: boolean
+        default: true
   push:
     branches:
       - 1.4.5-haigang
@@ -20,3 +25,4 @@ jobs:
     with:
       upload-artifact: true
       upload-tag: "haigang"
+      is-trial-version: ${{ inputs.is_trial_version == '' && true || inputs.is_trial_version }}
