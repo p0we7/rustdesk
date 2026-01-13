@@ -4036,6 +4036,14 @@ String get appName {
   return _appName;
 }
 
+String _appDisplayName = '';
+String get appDisplayName {
+  if (_appDisplayName.isEmpty) {
+    _appDisplayName = bind.mainGetAppDisplayNameSync();
+  }
+  return _appDisplayName;
+}
+
 String getConnectionText(bool secure, bool direct, String streamType) {
   String connectionText;
   if (secure && direct) {

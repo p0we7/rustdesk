@@ -718,6 +718,12 @@ pub fn get_app_name() -> String {
     crate::get_app_name()
 }
 
+#[cfg(any(target_os = "android", target_os = "ios", feature = "flutter"))]
+#[inline]
+pub fn get_app_display_name() -> String {
+    crate::get_app_display_name()
+}
+
 #[cfg(windows)]
 #[inline]
 pub fn create_shortcut(_id: String) {

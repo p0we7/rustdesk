@@ -2157,7 +2157,7 @@ class __PrinterState extends State<_Printer> {
       return Align(
         alignment: Alignment.topLeft,
         child:
-            Text(translate('printer-requires-installed-{$appName}-client-tip')),
+            Text(translate('printer-requires-installed-{$appDisplayName}-client-tip')),
       ).marginOnly(left: _kCardLeftMargin);
     }
 
@@ -2177,7 +2177,7 @@ class __PrinterState extends State<_Printer> {
               ? Offstage()
               : Align(
                   alignment: Alignment.topLeft,
-                  child: Text(translate('printer-{$appName}-not-installed-tip'))
+                  child: Text(translate('printer-{$appDisplayName}-not-installed-tip'))
                       .marginOnly(bottom: 10.0),
                 ),
         ),
@@ -2192,7 +2192,7 @@ class __PrinterState extends State<_Printer> {
                               .copyWith(color: Colors.red))
                       .marginOnly(bottom: 10.0)),
         ),
-        _Button('Install {$appName} Printer', () {
+        _Button('Install {$appDisplayName} Printer', () {
           failedMsg.value = '';
           bind.mainSetCommon(key: 'install-printer', value: '');
         })
@@ -2202,7 +2202,7 @@ class __PrinterState extends State<_Printer> {
     Widget tipReady() {
       return Align(
         alignment: Alignment.topLeft,
-        child: Text(translate('printer-{$appName}-ready-tip')),
+        child: Text(translate('printer-{$appDisplayName}-ready-tip')),
       ).marginOnly(left: _kCardLeftMargin);
     }
 
@@ -2302,7 +2302,7 @@ class _AboutState extends State<_About> {
       final scrollController = ScrollController();
       return SingleChildScrollView(
         controller: scrollController,
-        child: _Card(title: translate('About RustDesk'), children: [
+        child: _Card(title: translate('About HaiGang'), children: [
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

@@ -1006,6 +1006,11 @@ pub fn get_app_name() -> String {
 }
 
 #[inline]
+pub fn get_app_display_name() -> String {
+    hbb_common::config::APP_DISPLAY_NAME.read().unwrap().clone()
+}
+
+#[inline]
 pub fn is_rustdesk() -> bool {
     hbb_common::config::APP_NAME.read().unwrap().eq("RustDesk")
 }

@@ -815,6 +815,14 @@ class RustdeskImpl {
     return js.context.callMethod('getByName', ['app-name']);
   }
 
+  Future<String> mainGetAppDisplayName({dynamic hint}) {
+    return Future.value(mainGetAppDisplayNameSync(hint: hint));
+  }
+
+  String mainGetAppDisplayNameSync({dynamic hint}) {
+    return js.context.callMethod('getByName', ['app-display-name']);
+  }
+
   String mainUriPrefixSync({dynamic hint}) {
     throw UnimplementedError("mainUriPrefixSync");
   }
