@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hbb/common/widgets/trial_manager.dart'; // 引入上面的文件
+import 'package:flutter_hbb/common.dart'; // 引入 translate 函数
 
 class TrialBanner extends StatelessWidget {
   final VoidCallback? onExpired;
@@ -30,10 +31,10 @@ class TrialBanner extends StatelessWidget {
         ? [const Color(0xFFD32F2F), const Color(0xFFC62828)]
         : [const Color(0xFFFF9800), const Color(0xFFF57C00)];
     
-    final title = expired ? "试用已过期" : "试用版本";
+    final title = expired ? translate("Trial Expired") : translate("Trial Version");
     final message = expired
-        ? "请联系管理员获取正式版本"
-        : "有效期 ${TrialConfig.trialDays} 天\n剩余 ${manager.getFormattedTime()}";
+        ? translate("Please contact administrator for official version")
+        : "${translate("Valid for {} days").replaceAll("{}", "${TrialConfig.trialDays}")}\n${translate("Remaining: {}").replaceAll("{}", manager.getFormattedTime())}";
 
     return Container(
       margin: const EdgeInsets.fromLTRB(0, 20, 0, 0),

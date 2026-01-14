@@ -267,5 +267,14 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("rel-mouse-lock-failed-tip", "Failed to lock cursor. Relative Mouse Mode has been disabled."),
         ("rel-mouse-exit-{}-tip", "Press {} to exit."),
         ("rel-mouse-permission-lost-tip", "Keyboard permission was revoked. Relative Mouse Mode has been disabled."),
+        ("Trial Expired", "Trial Expired"),
+        ("Trial Version", "Trial Version"),
+        ("Please contact administrator for official version", "Please contact administrator for official version"),
+        ("Valid for {} days", "Valid for {} days"),
+        ("Remaining: {}", "Remaining: {}"),
+        ("Expired", "Expired"),
+        ("hours", "hours"),
+        ("trial_expired_message", "Trial version has expired. The program will exit shortly.\nTo continue using, please contact administrator for the official version."),
+        ("Closing in {} seconds...", "Closing in {} seconds..."),
     ].iter().cloned().collect();
 }

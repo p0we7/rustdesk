@@ -736,5 +736,14 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("rel-mouse-lock-failed-tip", "无法锁定鼠标，相对鼠标模式已禁用"),
         ("rel-mouse-exit-{}-tip", "按下 {} 退出"),
         ("rel-mouse-permission-lost-tip", "键盘权限被撤销。相对鼠标模式已被禁用。"),
+        ("Trial Expired", "试用已过期"),
+        ("Trial Version", "试用版本"),
+        ("Please contact administrator for official version", "请联系管理员获取正式版本"),
+        ("Valid for {} days", "有效期 {} 天"),
+        ("Remaining: {}", "剩余 {}"),
+        ("Expired", "已过期"),
+        ("hours", "小时"),
+        ("trial_expired_message", "试用版本已过期，程序即将退出。\n如需继续使用，请联系管理员获取正式版本。"),
+        ("Closing in {} seconds...", "{} 秒后关闭..."),
     ].iter().cloned().collect();
 }

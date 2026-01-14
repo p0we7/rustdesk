@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 // 引入必要的 RustDesk 绑定
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:flutter_hbb/common/shared_state.dart'; // 假设 bind 在这里或 global
-import 'package:flutter_hbb/common.dart'; // 引入 gFFI
+import 'package:flutter_hbb/common.dart'; // 引入 gFFI 和 translate 函数
 
 /// 试用版配置
 class TrialConfig {
@@ -51,9 +51,9 @@ class TrialManager {
   /// 获取格式化的时间字符串
   String getFormattedTime() {
     final s = _remainingSeconds ?? 0;
-    if (s <= 0) return "已过期";
+    if (s <= 0) return translate("Expired");
     final hours = (s / 3600).ceil();
-    return "$hours 小时";
+    return "$hours ${translate("hours")}";
   }
 
   bool get isExpired => (_remainingSeconds != null && _remainingSeconds! <= 0);
@@ -81,19 +81,19 @@ class TrialManager {
       });
 
       return CustomAlertDialog(
-        title: const Text("试用已过期"),
+        title: Text(translate("Trial Expired")),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.warning_amber_rounded, size: 64, color: Colors.orange),
             const SizedBox(height: 16),
-            const Text(
-              "试用版本已过期，程序即将退出。\n如需继续使用，请联系管理员获取正式版本。",
+            Text(
+              translate("trial_expired_message"),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
             Text(
-              "$countdown 秒后关闭...",
+              translate("Closing in {} seconds...").replaceAll("{}", "$countdown"),
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red),
             ),
           ],
