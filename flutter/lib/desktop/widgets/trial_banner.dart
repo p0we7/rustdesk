@@ -34,7 +34,8 @@ class TrialBanner extends StatelessWidget {
     final title = expired ? translate("Trial Expired") : translate("Trial Version");
     final message = expired
         ? translate("Please contact administrator for official version")
-        : "${translate("Valid for {} days").replaceAll("{}", "${TrialConfig.trialDays}")}\n${translate("Remaining: {}").replaceAll("{}", manager.getFormattedTime())}";
+        : "${translate("Valid for {${TrialConfig.trialDays}} days")}\n${translate("Remaining: {${manager.getFormattedTime()}}")}";
+
 
     return Container(
       margin: const EdgeInsets.fromLTRB(0, 20, 0, 0),

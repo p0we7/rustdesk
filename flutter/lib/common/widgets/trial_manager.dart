@@ -93,7 +93,7 @@ class TrialManager {
             ),
             const SizedBox(height: 16),
             Text(
-              translate("Closing in {} seconds...").replaceAll("{}", "$countdown"),
+              translate("Closing in {$countdown} seconds..."),
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red),
             ),
           ],
