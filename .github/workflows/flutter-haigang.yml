@@ -9,7 +9,7 @@ on:
         default: true
   push:
     branches:
-      - 1.4.5-haigang
+      - 1.4.5-haigang-incoming
     paths-ignore:
       - "docs/**"
       - "README.md"
