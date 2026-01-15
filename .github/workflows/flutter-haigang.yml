@@ -24,5 +24,5 @@ jobs:
     secrets: inherit
     with:
       upload-artifact: true
-      upload-tag: "haigang"
+      upload-tag: ${{ github.ref_name }}
       is-trial-version: ${{ inputs.is_trial_version == '' && true || inputs.is_trial_version }}
