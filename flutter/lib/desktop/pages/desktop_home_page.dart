@@ -475,7 +475,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           onPressed: () {
             final id = model.serverId.text;
             final password = model.serverPasswd.text;
-            final copyText = translate("ID: {$id} \nPassword: {$password}");
+            final copyText = "${translate('copy-remote-id-{$id}')}\n${translate('copy-password-{$password}')}";
             Clipboard.setData(ClipboardData(text: copyText));
             showToast(translate('Copied'));
           },
