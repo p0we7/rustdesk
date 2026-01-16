@@ -2,10 +2,6 @@ name: "DEBUG: Flutter Build for Windows"
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - 1.4.5-haigang
-      - trial
 
 
 # NOTE: F-Droid builder script 'flutter/build_fdroid.sh' reads environment
