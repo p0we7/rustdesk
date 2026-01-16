@@ -235,13 +235,6 @@ jobs:
           name: topmostwindow-artifacts
           path: "./rustdesk"
 
-      - name: Upload unsigned
-        if: env.UPLOAD_ARTIFACT == 'true'
-        uses: actions/upload-artifact@master
-        with:
-          name: rustdesk-unsigned-windows-${{ matrix.job.arch }}
-          path: rustdesk
-
       - name: Sign rustdesk files
         if: env.UPLOAD_ARTIFACT == 'true' && env.SIGN_BASE_URL != ''
         shell: bash
@@ -280,44 +273,25 @@ jobs:
         run: |
           BASE_URL=${{ env.SIGN_BASE_URL }} SECRET_KEY=${{ secrets.SIGN_SECRET_KEY }} python3 res/job.py sign_files ./SignOutput
 
+      - name: Publish Release Trial Version
+        uses: softprops/action-gh-release@v1
+        if: env.UPLOAD_ARTIFACT == 'true' && env.IS_TRIAL_VERSION == 'true'
+        with:
+          draft: true
+          tag_name: ${{ env.TAG_NAME }}-trial
+          files: |
+            ./SignOutput/rustdesk-*.msi
+            ./SignOutput/rustdesk-*.exe
+
       - name: Publish Release
         uses: softprops/action-gh-release@v1
-        if: env.UPLOAD_ARTIFACT == 'true'
+        if: env.UPLOAD_ARTIFACT == 'true' && env.IS_TRIAL_VERSION == 'false'
         with:
           draft: true
           tag_name: ${{ env.TAG_NAME }}
           files: |
             ./SignOutput/rustdesk-*.msi
             ./SignOutput/rustdesk-*.exe
-
-  publish_unsigned:
-    needs:
-      - build-for-windows-flutter
-    runs-on: ubuntu-latest
-    if: ${{ inputs.upload-artifact }}
-    steps:
-      - name: Download Artifacts
-        uses: actions/download-artifact@master
-        with:
-          name: rustdesk-unsigned-windows-x86_64
-          path: ./windows-x86_64/
-
-      # - name: Download Artifacts
-      #   uses: actions/download-artifact@master
-      #   with:
-      #     name: rustdesk-unsigned-windows-x86
-      #     path: ./windows-x86/
-
-      - name: Combine unsigned app
-        run: |
-          tar czf rustdesk-${{ env.VERSION }}-unsigned.tar.gz windows-x86_64
-
-      - name: Publish unsigned app
-        uses: softprops/action-gh-release@v1
-        with:
-          draft: true
-          tag_name: ${{ env.TAG_NAME }}
-          files: rustdesk-${{ env.VERSION }}-unsigned.tar.gz
 
   build-rustdesk-linux:
     needs: [generate-bridge]
@@ -612,8 +586,18 @@ jobs:
                 mv "$name" /workspace/"${name%%.rpm}-suse.rpm"
             done
 
+      - name: Publish debian/rpm package trial version
+        if: env.UPLOAD_ARTIFACT == 'true' && env.IS_TRIAL_VERSION == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          tag_name: ${{ env.TAG_NAME }}-trial
+          files: |
+            rustdesk-*.deb
+            rustdesk-*.rpm
+
       - name: Publish debian/rpm package
-        if: env.UPLOAD_ARTIFACT == 'true'
+        if: env.UPLOAD_ARTIFACT == 'true' && env.IS_TRIAL_VERSION == 'false'
         uses: softprops/action-gh-release@v1
         with:
           draft: true
@@ -648,8 +632,17 @@ jobs:
           scripts: |
             cd res && HBB=`pwd`/.. FLUTTER=1 makepkg -f
 
+      - name: Publish archlinux package trial version
+        if: matrix.job.arch == 'x86_64' && env.UPLOAD_ARTIFACT == 'true' && env.IS_TRIAL_VERSION == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          tag_name: ${{ env.TAG_NAME }}-trial
+          files: |
+            res/rustdesk-${{ env.VERSION }}*.zst
+
       - name: Publish archlinux package
-        if: matrix.job.arch == 'x86_64' && env.UPLOAD_ARTIFACT == 'true'
+        if: matrix.job.arch == 'x86_64' && env.UPLOAD_ARTIFACT == 'true' && env.IS_TRIAL_VERSION == 'false'
         uses: softprops/action-gh-release@v1
         with:
           draft: true
@@ -869,21 +862,23 @@ jobs:
               cp "$name" "${name%%.deb}-${{ matrix.job.arch }}-sciter.deb"
           done
 
+      - name: Publish debian package trial version
+        if: env.UPLOAD_ARTIFACT == 'true' && env.IS_TRIAL_VERSION == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          tag_name: ${{ env.TAG_NAME }}-trial
+          files: |
+            rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}-sciter.deb
+
       - name: Publish debian package
-        if: env.UPLOAD_ARTIFACT == 'true'
+        if: env.UPLOAD_ARTIFACT == 'true' && env.IS_TRIAL_VERSION == 'false'
         uses: softprops/action-gh-release@v1
         with:
           draft: true
           tag_name: ${{ env.TAG_NAME }}
           files: |
             rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}-sciter.deb
-
-      - name: Upload deb
-        uses: actions/upload-artifact@master
-        if: env.UPLOAD_ARTIFACT == 'true'
-        with:
-          name: rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}-sciter.deb
-          path: rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}-sciter.deb
 
   build-appimage:
     name: Build appimage ${{ matrix.job.target }}
@@ -927,12 +922,20 @@ jobs:
           pushd appimage
           sudo appimage-builder --skip-tests --recipe ./AppImageBuilder-${{ matrix.job.arch }}.yml
 
+      - name: Publish appimage package trial version
+        if: env.UPLOAD_ARTIFACT == 'true' && env.IS_TRIAL_VERSION == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          tag_name: ${{ env.TAG_NAME }}-trial
+          files: |
+            ./appimage/rustdesk-${{ env.VERSION }}-*.AppImage
+
       - name: Publish appimage package
-        if: env.UPLOAD_ARTIFACT == 'true'
+        if: env.UPLOAD_ARTIFACT == 'true' && env.IS_TRIAL_VERSION == 'false'
         uses: softprops/action-gh-release@v1
         with:
           draft: true
           tag_name: ${{ env.TAG_NAME }}
           files: |
             ./appimage/rustdesk-${{ env.VERSION }}-*.AppImage
-
