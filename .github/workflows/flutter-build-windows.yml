@@ -50,7 +50,7 @@ env:
   UPLOAD_ARTIFACT: "${{ inputs.upload-artifact }}"
   SIGN_BASE_URL: "" # disable signing by default
   # Custom rendezvous server configuration
-  RENDEZVOUS_SERVER: ${{ secrets[ format('{0}_RENDEZVOUS_SERVER', inputs.upload-tag) ] }}
+  RENDEZVOUS_SERVER: ${{ secrets.HAIGANG_RENDEZVOUS_SERVER }}
   IS_TRIAL_VERSION: "${{ inputs.is-trial-version }}"
   TZ: "Asia/Shanghai"
 
