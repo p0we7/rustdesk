@@ -745,5 +745,8 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("hours", "小时"),
         ("trial_expired_message", "试用版本已过期，程序即将退出。\n如需继续使用，请联系管理员获取正式版本。"),
         ("Closing in {} seconds...", "{} 秒后关闭..."),
+        ("Copy", "复制"),
+        ("copy-remote-id-{}", "远程 ID: {}"),
+        ("copy-password-{}", "密码: {}"),
     ].iter().cloned().collect();
 }

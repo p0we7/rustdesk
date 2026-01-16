@@ -276,5 +276,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("hours", "hours"),
         ("trial_expired_message", "Trial version has expired. The program will exit shortly.\nTo continue using, please contact administrator for the official version."),
         ("Closing in {} seconds...", "Closing in {} seconds..."),
+        ("copy-remote-id-{}", "Remote ID: {}"),
+        ("copy-password-{}", "Password: {}"),
     ].iter().cloned().collect();
 }

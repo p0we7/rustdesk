@@ -466,6 +466,24 @@ class _DesktopHomePageState extends State<DesktopHomePage>
 
   // === 提取原逻辑到此辅助方法 ===
   Widget? _buildStandardHelpCard(String updateUrl) {
+    // 优先检查：incoming 模式下直接返回复制按钮
+    if (bind.isIncomingOnly()) {
+      final model = gFFI.serverModel;
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: ElevatedButton(
+          onPressed: () {
+            final id = model.serverId.text;
+            final password = model.serverPasswd.text;
+            final copyText = translate("ID: {$id} \nPassword: {$password}");
+            Clipboard.setData(ClipboardData(text: copyText));
+            showToast(translate('Copied'));
+          },
+          child: Text(translate('Copy')),
+        ),
+      ).marginAll(18);
+    }
+
     if (!bind.isCustomClient() &&
         updateUrl.isNotEmpty &&
         !isCardClosed &&
@@ -576,20 +594,6 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           children: LinuxCards,
         );
       }
-    }
-    if (bind.isIncomingOnly()) {
-      return Align(
-        alignment: Alignment.centerRight,
-        child: OutlinedButton(
-          onPressed: () {
-            SystemNavigator.pop();
-            if (isWindows) {
-              exit(0);
-            }
-          },
-          child: Text(translate('Quit')),
-        ),
-      ).marginAll(14);
     }
     return null;
   }
