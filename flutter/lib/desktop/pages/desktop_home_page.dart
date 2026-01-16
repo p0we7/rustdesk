@@ -409,7 +409,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    translate("Your Desktop"),
+                    translate("HG Ops Tools"),
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ),

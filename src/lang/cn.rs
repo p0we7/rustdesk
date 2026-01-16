@@ -2,8 +2,8 @@ lazy_static::lazy_static! {
 pub static ref T: std::collections::HashMap<&'static str, &'static str> =
     [
         ("Status", "状态"),
-        ("Your Desktop", "你的桌面"),
-        ("desk_tip", "你的桌面可以通过下面的 ID 和密码访问。"),
+        ("HG Ops Tools", "海钢运维工具"),
+        ("desk_tip", "请将以下ID和密码发送给管理员协助您处理问题。"),
         ("Password", "密码"),
         ("Ready", "就绪"),
         ("Established", "已建立"),
