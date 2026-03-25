@@ -21,6 +21,10 @@ import android.view.accessibility.AccessibilityNodeInfo
 import android.view.KeyEvent as KeyEventAndroid
 import android.view.ViewConfiguration
 import android.graphics.Rect
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
 import android.media.AudioManager
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.accessibilityservice.AccessibilityServiceInfo.FLAG_INPUT_METHOD_EDITOR
@@ -28,12 +32,15 @@ import android.accessibilityservice.AccessibilityServiceInfo.FLAG_RETRIEVE_INTER
 import android.view.inputmethod.EditorInfo
 import androidx.annotation.RequiresApi
 import java.util.*
+import java.nio.ByteBuffer
 import java.lang.Character
 import kotlin.math.abs
 import kotlin.math.max
+import kotlin.math.min
 import hbb.MessageOuterClass.KeyEvent
 import hbb.MessageOuterClass.KeyboardMode
 import hbb.KeyEventConverter
+import ffi.FFI
 
 // const val BUTTON_UP = 2
 // const val BUTTON_BACK = 0x08
@@ -66,6 +73,9 @@ class InputService : AccessibilityService() {
         var ctx: InputService? = null
         val isOpen: Boolean
             get() = ctx != null
+        @Volatile
+        var isPassthroughCapturing = false
+            private set
     }
 
     private val logTag = "input service"
@@ -88,6 +98,27 @@ class InputService : AccessibilityService() {
 
     private var lastX = 0
     private var lastY = 0
+
+    // Passthrough capture
+    private val captureHandler = Handler(Looper.getMainLooper())
+    private var captureFrameBuffer: ByteBuffer? = null
+    private val capturePaint = Paint().apply {
+        isAntiAlias = false
+        style = Paint.Style.FILL
+    }
+    private val captureTextPaint = Paint().apply {
+        isAntiAlias = true
+        color = Color.BLACK
+        textSize = 14f
+    }
+    private val captureRunnable: Runnable = object : Runnable {
+        override fun run() {
+            if (isPassthroughCapturing) {
+                captureScreenViaAccessibility()
+                captureHandler.postDelayed(this, 33) // ~30fps
+            }
+        }
+    }
 
     private val volumeController: VolumeController by lazy { VolumeController(applicationContext.getSystemService(AUDIO_SERVICE) as AudioManager) }
 
@@ -733,9 +764,116 @@ class InputService : AccessibilityService() {
     }
 
     override fun onDestroy() {
+        stopPassthroughCapture()
         ctx = null
         super.onDestroy()
     }
 
     override fun onInterrupt() {}
+
+    // ---- Passthrough screen capture ----
+
+    fun startPassthroughCapture() {
+        if (isPassthroughCapturing) return
+        Log.d(logTag, "startPassthroughCapture")
+        isPassthroughCapturing = true
+        FFI.setFrameRawEnable("video", true)
+        captureHandler.post(captureRunnable)
+    }
+
+    fun stopPassthroughCapture() {
+        if (!isPassthroughCapturing) return
+        Log.d(logTag, "stopPassthroughCapture")
+        isPassthroughCapturing = false
+        captureHandler.removeCallbacks(captureRunnable)
+        FFI.setFrameRawEnable("video", false)
+        captureFrameBuffer = null
+    }
+
+    private fun captureScreenViaAccessibility() {
+        try {
+            val root = rootInActiveWindow ?: return
+            val w = SCREEN_INFO.width
+            val h = SCREEN_INFO.height
+            if (w <= 0 || h <= 0) return
+
+            val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bitmap)
+            canvas.drawColor(Color.WHITE)
+
+            drawNodeTree(root, canvas)
+            root.recycle()
+
+            val byteCount = bitmap.byteCount
+            var buf = captureFrameBuffer
+            if (buf == null || buf.capacity() < byteCount) {
+                buf = ByteBuffer.allocateDirect(byteCount)
+                captureFrameBuffer = buf
+            }
+            buf.rewind()
+            bitmap.copyPixelsToBuffer(buf)
+            buf.rewind()
+            bitmap.recycle()
+
+            FFI.onVideoFrameUpdate(buf)
+        } catch (e: Exception) {
+            Log.e(logTag, "captureScreenViaAccessibility error: $e")
+        }
+    }
+
+    private fun drawNodeTree(node: AccessibilityNodeInfo, canvas: Canvas) {
+        val rect = Rect()
+        node.getBoundsInScreen(rect)
+        val scale = SCREEN_INFO.scale
+        val drawRect = Rect(
+            rect.left / scale, rect.top / scale,
+            min(rect.right / scale, canvas.width),
+            min(rect.bottom / scale, canvas.height)
+        )
+
+        // Draw background based on class name hints
+        val className = node.className?.toString() ?: ""
+        if (className.contains("Button")) {
+            capturePaint.color = Color.LTGRAY
+            canvas.drawRect(drawRect, capturePaint)
+        } else if (className.contains("EditText")) {
+            capturePaint.color = Color.parseColor("#FFF0F0F0")
+            canvas.drawRect(drawRect, capturePaint)
+            // Draw underline for edit fields
+            capturePaint.color = Color.GRAY
+            canvas.drawRect(
+                drawRect.left.toFloat(), (drawRect.bottom - 2).toFloat(),
+                drawRect.right.toFloat(), drawRect.bottom.toFloat(),
+                capturePaint
+            )
+        } else if (className.contains("Image")) {
+            capturePaint.color = Color.parseColor("#FFE0E0E0")
+            canvas.drawRect(drawRect, capturePaint)
+        }
+
+        // Draw text content
+        val text = node.text?.toString() ?: node.contentDescription?.toString()
+        if (!text.isNullOrEmpty() && drawRect.width() > 0 && drawRect.height() > 0) {
+            val textSize = min(drawRect.height().toFloat() * 0.7f, 48f)
+            captureTextPaint.textSize = max(textSize, 10f)
+            canvas.save()
+            canvas.clipRect(drawRect)
+            canvas.drawText(
+                text,
+                drawRect.left.toFloat() + 2,
+                drawRect.top.toFloat() + captureTextPaint.textSize,
+                captureTextPaint
+            )
+            canvas.restore()
+        }
+
+        // Recurse children
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            drawNodeTree(child, canvas)
+            if (Build.VERSION.SDK_INT < 33) {
+                child.recycle()
+            }
+        }
+    }
 }

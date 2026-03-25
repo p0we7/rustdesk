@@ -173,7 +173,16 @@ class MainService : Service() {
             }
             "stop_capture" -> {
                 Log.d(logTag, "from rust:stop_capture")
+                InputService.ctx?.stopPassthroughCapture()
                 stopCapture()
+            }
+            "start_passthrough" -> {
+                Log.d(logTag, "from rust:start_passthrough")
+                InputService.ctx?.startPassthroughCapture()
+            }
+            "stop_passthrough" -> {
+                Log.d(logTag, "from rust:stop_passthrough")
+                InputService.ctx?.stopPassthroughCapture()
             }
             "half_scale" -> {
                 val halfScale = arg1.toBoolean()

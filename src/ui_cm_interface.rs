@@ -303,6 +303,11 @@ impl<T: InvokeUiCM> ConnectionManager<T> {
             {
                 log::debug!("stop_capture err:{}", e);
             }
+            if let Err(e) =
+                scrap::android::call_main_service_set_by_name("stop_passthrough", None, None)
+            {
+                log::debug!("stop_passthrough err:{}", e);
+            }
         }
 
         self.ui_handler.remove_connection(id, close);

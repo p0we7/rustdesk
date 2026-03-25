@@ -310,6 +310,16 @@ class FloatingWindowService : Service(), View.OnTouchListener {
          if (isServiceSyncEnabled) {
              popupMenu.menu.add(0, idSyncClipboard, 0, translate("Update client clipboard"))
          }
+         // Passthrough mode toggle
+         val idPassthrough = 3
+         if (InputService.isOpen) {
+             val label = if (InputService.isPassthroughCapturing) {
+                 "✓ Passthrough Mode"
+             } else {
+                 "Passthrough Mode"
+             }
+             popupMenu.menu.add(0, idPassthrough, 0, label)
+         }
          val idStopService = 2
          popupMenu.menu.add(0, idStopService, 0, translate("Stop service"))
          popupMenu.setOnMenuItemClickListener { menuItem ->
@@ -320,6 +330,14 @@ class FloatingWindowService : Service(), View.OnTouchListener {
                  }
                 idSyncClipboard -> {
                      syncClipboard()
+                     true
+                 }
+                 idPassthrough -> {
+                     if (InputService.isPassthroughCapturing) {
+                         InputService.ctx?.stopPassthroughCapture()
+                     } else {
+                         InputService.ctx?.startPassthroughCapture()
+                     }
                      true
                  }
                  idStopService -> {
