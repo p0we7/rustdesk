@@ -1,0 +1,20 @@
+name: Flutter Cloud Phone Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 1.4.9-cloud-phone
+    paths-ignore:
+      - "docs/**"
+      - "README.md"
+      - "res/**"
+      - "appimage/**"
+      - "flatpak/**"
+jobs:
+  run-flutter-nightly-build:
+    uses: ./.github/workflows/flutter-build-w+a.yml
+    secrets: inherit
+    with:
+      upload-artifact: true
+      upload-tag: ${{ github.ref_name }}
