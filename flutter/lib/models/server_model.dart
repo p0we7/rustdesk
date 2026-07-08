@@ -189,35 +189,63 @@ class ServerModel with ChangeNotifier {
       });
     }
 
-    // Initial keyboard status is off on mobile
-    if (isMobile) {
-      bind.mainSetOption(key: kOptionEnableKeyboard, value: 'N');
-    }
   }
 
   /// 1. check android permission
   /// 2. check config
   /// audio true by default (if permission on) (false default < Android 10)
   /// file true by default (if permission on)
+  /// keyboard true by default (if accessibility service on)
   checkAndroidPermission() async {
-    // audio
-    if (androidVersion < 30 ||
-        !await AndroidPermissionManager.check(kRecordAudio)) {
-      _audioOk = false;
-      bind.mainSetOption(key: kOptionEnableAudio, value: "N");
+    // keyboard / input control
+    final keyboardOption = await bind.mainGetOption(key: kOptionEnableKeyboard);
+    final wantKeyboard = keyboardOption != 'N';
+
+    if (wantKeyboard) {
+      if (!_inputOk && parent.target != null) {
+        showInputWarnAlert(parent.target!);
+      }
     } else {
-      final audioOption = await bind.mainGetOption(key: kOptionEnableAudio);
-      _audioOk = audioOption != 'N';
+      _inputOk = false;
+    }
+
+    // audio
+    final audioOption = await bind.mainGetOption(key: kOptionEnableAudio);
+    final wantAudio = audioOption != 'N';
+
+    if (androidVersion >= 30 && wantAudio) {
+      if (!await AndroidPermissionManager.check(kRecordAudio)) {
+        final granted = await AndroidPermissionManager.request(kRecordAudio);
+        _audioOk = granted;
+        if (!granted) {
+          bind.mainSetOption(key: kOptionEnableAudio, value: "N");
+        }
+      } else {
+        _audioOk = true;
+      }
+    } else {
+      _audioOk = androidVersion >= 30 && wantAudio;
+      if (!_audioOk) {
+        bind.mainSetOption(key: kOptionEnableAudio, value: "N");
+      }
     }
 
     // file
-    if (!await AndroidPermissionManager.check(kManageExternalStorage)) {
-      _fileOk = false;
-      bind.mainSetOption(key: kOptionEnableFileTransfer, value: "N");
+    final fileOption = await bind.mainGetOption(key: kOptionEnableFileTransfer);
+    final wantFile = fileOption != 'N';
+
+    if (wantFile) {
+      if (!await AndroidPermissionManager.check(kManageExternalStorage)) {
+        final granted = await AndroidPermissionManager.request(kManageExternalStorage);
+        _fileOk = granted;
+        if (!granted) {
+          bind.mainSetOption(key: kOptionEnableFileTransfer, value: "N");
+        }
+      } else {
+        _fileOk = true;
+      }
     } else {
-      final fileOption =
-          await bind.mainGetOption(key: kOptionEnableFileTransfer);
-      _fileOk = fileOption != 'N';
+      _fileOk = false;
     }
 
     // clipboard
@@ -421,6 +449,7 @@ class ServerModel with ChangeNotifier {
       if (!await AndroidPermissionManager.check(kManageExternalStorage)) {
         await AndroidPermissionManager.request(kManageExternalStorage);
       }
+      await checkAndroidPermission();
       final res = await parent.target?.dialogManager
           .show<bool>((setState, close, context) {
         submit() => close(true);
