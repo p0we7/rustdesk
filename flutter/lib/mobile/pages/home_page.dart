@@ -33,6 +33,11 @@ class HomePageState extends State<HomePage> {
       ? _selectedIndex == _chatPageTabIndex
       : false; // change this when ios have chat page
 
+  int _titleTapCount = 0;
+  DateTime? _firstTapTime;
+  bool _connectionPageEnabled = false;
+  bool _settingsPageEnabled = false;
+
   void refreshPages() {
     setState(() {
       initPages();
@@ -47,7 +52,7 @@ class HomePageState extends State<HomePage> {
 
   void initPages() {
     _pages.clear();
-    if (!bind.isIncomingOnly()) {
+    if (_connectionPageEnabled && !bind.isIncomingOnly()) {
       _pages.add(ConnectionPage(
         appBarActions: [],
       ));
@@ -56,7 +61,28 @@ class HomePageState extends State<HomePage> {
       // _chatPageTabIndex = _pages.length;  // 注释掉，因为不再有 ChatPage
       _pages.add(ServerPage());  // 只添加 ServerPage
     }
-    _pages.add(SettingsPage());
+    if (_settingsPageEnabled) {
+      _pages.add(SettingsPage());
+    }
+  }
+
+  void _handleTitleTap() {
+    final now = DateTime.now();
+    if (_firstTapTime == null || now.difference(_firstTapTime!).inSeconds > 3) {
+      _titleTapCount = 1;
+      _firstTapTime = now;
+    } else {
+      _titleTapCount++;
+      if (_titleTapCount >= 5) {
+        setState(() {
+          _connectionPageEnabled = true;
+          _settingsPageEnabled = true;
+          _titleTapCount = 0;
+          _firstTapTime = null;
+        });
+        refreshPages();
+      }
+    }
   }
 
   @override
@@ -150,7 +176,10 @@ class HomePageState extends State<HomePage> {
         ],
       );
     }
-    return Text(bind.mainGetAppNameSync());
+    return GestureDetector(
+      onTap: _handleTitleTap,
+      child: Text(bind.mainGetAppNameSync()),
+    );
   }
 }
 

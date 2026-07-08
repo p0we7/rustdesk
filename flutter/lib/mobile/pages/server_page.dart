@@ -180,18 +180,17 @@ class _DropDownAction extends StatelessWidget {
 }
 
 class _ServerPageState extends State<ServerPage> {
-  Timer? _updateTimer;
+ Timer? _updateTimer;
 
-  @override
-  void initState() {
-    super.initState();
-    _updateTimer = periodic_immediate(const Duration(seconds: 3), () async {
-      await gFFI.serverModel.fetchID();
-    });
-    gFFI.serverModel.checkAndroidPermission();
-  }
+ @override
+ void initState() {
+   super.initState();
+   _updateTimer = periodic_immediate(const Duration(seconds: 3), () async {
+     await gFFI.serverModel.fetchID();
+   });
+ }
 
-  @override
+ @override
   void dispose() {
     _updateTimer?.cancel();
     super.dispose();
