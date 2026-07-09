@@ -227,6 +227,8 @@ class MainService : Service() {
     private lateinit var notificationManager: NotificationManager
     private lateinit var notificationChannel: String
     private lateinit var notificationBuilder: NotificationCompat.Builder
+    private var configPath: String = ""
+    private var serverStarted = false
 
     override fun onCreate() {
         super.onCreate()
@@ -241,10 +243,7 @@ class MainService : Service() {
         initNotification()
 
         // keep the config dir same with flutter
-        val prefs = applicationContext.getSharedPreferences(KEY_SHARED_PREFERENCES, FlutterActivity.MODE_PRIVATE)
-        val configPath = prefs.getString(KEY_APP_DIR_CONFIG_PATH, "") ?: ""
-        FFI.startServer(configPath, "")
-
+        configPath = applicationContext.getSharedPreferences(KEY_SHARED_PREFERENCES, FlutterActivity.MODE_PRIVATE).getString(KEY_APP_DIR_CONFIG_PATH, "") ?: ""
         createForegroundNotification()
     }
 
@@ -329,6 +328,7 @@ class MainService : Service() {
         if (intent?.action == ACT_INIT_MEDIA_PROJECTION_AND_SERVICE) {
             createForegroundNotification()
 
+            startServerOnce()
             if (intent.getBooleanExtra(EXT_INIT_FROM_BOOT, false)) {
                 FFI.startService()
             }
@@ -725,5 +725,12 @@ class MainService : Service() {
             .setContentText(text)
             .build()
         notificationManager.notify(DEFAULT_NOTIFY_ID, notification)
+    }
+
+    private fun startServerOnce() {
+        if (!serverStarted) {
+            serverStarted = true
+            FFI.startServer(configPath, "")
+        }
     }
 }
